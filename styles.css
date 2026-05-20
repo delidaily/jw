@@ -1,0 +1,170 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+  background: #fdf7f9;
+  color: #333;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 80px;
+}
+
+header { text-align: center; padding: 16px 0 8px; }
+header h1 { font-size: 1.6rem; color: #c2185b; }
+.subtitle { color: #888; font-size: 0.85rem; margin-top: 4px; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+@media (min-width: 600px) {
+  .summary { grid-template-columns: repeat(4, 1fr); }
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  text-align: center;
+}
+.card-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+.card-value { font-size: 1.2rem; font-weight: 700; color: #c2185b; }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 10px 8px;
+  background: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.tab.active {
+  background: #c2185b;
+  color: white;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.hint {
+  font-size: 0.8rem;
+  color: #777;
+  background: #fff3e0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.hint code {
+  background: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.activity-list, .usage-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.activity-item {
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: opacity 0.2s;
+}
+.activity-item.done { opacity: 0.55; }
+
+.activity-info { flex: 1; min-width: 0; }
+.activity-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+.activity-meta {
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.4;
+}
+.activity-point {
+  font-size: 0.85rem;
+  color: #c2185b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.counter button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #c2185b;
+}
+.counter button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.counter .count {
+  min-width: 50px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.usage-item {
+  background: white;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.usage-name { font-weight: 600; }
+.usage-limit { color: #c2185b; font-weight: 600; }
+
+footer {
+  margin-top: 24px;
+  text-align: center;
+}
+.reset-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: #888;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.reset-btn:hover { color: #c2185b; border-color: #c2185b; }

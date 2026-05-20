@@ -1,0 +1,42 @@
+{
+  "limited": [
+    { "id": "wedding-compare", "name": "웨딩전적 비교샷", "max": 1, "point": 5000, "note": "사진 1장 이상" },
+    { "id": "planner-review", "name": "플래너 진행후기", "max": 4, "point": 8000, "note": "글자 400자+ / 사진 5장+ (최대 30,000P)" },
+    { "id": "sdm-studio", "name": "스드메 진행후기 (스튜디오)", "max": 1, "point": 8000, "note": "글자 400자+ / 사진 5장+" },
+    { "id": "sdm-dress", "name": "스드메 진행후기 (드레스)", "max": 1, "point": 8000, "note": "글자 400자+ / 사진 5장+" },
+    { "id": "sdm-makeup", "name": "스드메 진행후기 (메이크업)", "max": 1, "point": 8000, "note": "글자 400자+ / 사진 5장+" },
+    { "id": "sdm-hair", "name": "스드메 진행후기 (헤어)", "max": 1, "point": 8000, "note": "글자 400자+ / 사진 5장+" },
+    { "id": "sdm-photo-dress", "name": "스드메 진행후기 (촬영드레스)", "max": 1, "point": 8000, "note": "글자 400자+ / 사진 5장+" },
+    { "id": "honsu-review", "name": "혼수 진행후기", "max": 8, "point": 8000, "note": "업체별 1회 (최대 60,000P)" },
+    { "id": "jongno-suwon", "name": "종로/수원 진행후기", "max": 2, "point": 8000, "note": "업체별 1회" },
+    { "id": "expo-review", "name": "박람회 방문후기", "max": 2, "point": 8000, "note": "최대 16,000P" },
+    { "id": "honsu-contract", "name": "혼수계약 후기 (계약 포인트)", "max": 4, "point": 20000, "note": "완제품 받은 후 작성 (최대 80,000P)" },
+    { "id": "blog-sns", "name": "블로그 SNS 활동", "max": 10, "point": 5000, "note": "글자 400자+ / 사진 10장+ (최대 50,000P)" },
+    { "id": "insta-sns", "name": "인스타그램 SNS 활동", "max": 15, "point": 2000, "note": "글자 300자+ / 사진 3장+ (최대 30,000P)" },
+    { "id": "naver-cafe-reg", "name": "네이버앱 우리카페 등록", "max": 1, "point": 1000, "note": "캡처 이미지 제출" },
+    { "id": "board-bookmark", "name": "게시판 즐겨찾기", "max": 1, "point": 1000, "note": "필수 2 + 원하는 2" },
+    { "id": "naver-tv", "name": "네이버 TV 구독", "max": 1, "point": 500, "note": "캡처 이미지 제출" },
+    { "id": "youtube", "name": "유튜브 구독", "max": 1, "point": 500, "note": "캡처 이미지 제출" },
+    { "id": "receipt-review", "name": "영수증 네이버리뷰", "max": 2, "point": 1000, "note": "계약금/잔금 영수증" }
+  ],
+  "daily": [
+    { "id": "wedding-talk", "name": "웨딩수다", "perDay": 3, "point": 500, "note": "글자 400자+ / 사진 1~3장 (1회당 500P, 일 3회)" },
+    { "id": "comment-activity", "name": "댓글활동", "perDay": 1, "point": 1500, "note": "댓글 20~60건 후 인증글 (1회 최대 1,500P)" }
+  ],
+  "monthly": [
+    { "id": "other-cafe-msg", "name": "타카페 쪽지 (블로그 댓글 포함)", "perMonth": 20, "point": 1000, "note": "웨딩 관련 내용만 인정" },
+    { "id": "monthly-blog", "name": "매달 블로그 이벤트", "perMonth": 5, "point": 2000, "note": "활동 링크 직접 제출" },
+    { "id": "monthly-insta", "name": "매달 인스타 이벤트", "perMonth": 5, "point": 1000, "note": "활동 링크 직접 제출" },
+    { "id": "point-brag", "name": "포인트 자랑글", "perMonth": 4, "point": 500, "note": "활동링크 제출" }
+  ],
+  "usage": [
+    { "name": "부케", "limit": 80000 },
+    { "name": "본식스냅사진", "limit": 300000 },
+    { "name": "폐백음식", "limit": 130000 },
+    { "name": "부례", "limit": 90000 },
+    { "name": "연주", "limit": 200000 },
+    { "name": "사회자", "limit": 110000 },
+    { "name": "축가", "limit": 90000 },
+    { "name": "DVD", "limit": 300000 }
+  ]
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💍 제이웨딩 포인트 관리</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>💍 제이웨딩 포인트 관리</h1>
+    <p class="subtitle">플래너 계약 완료 기준 · 카페+SNS 활동 중심</p>
+  </header>
+
+  <section class="summary">
+    <div class="card">
+      <div class="card-label">누적 포인트</div>
+      <div class="card-value" id="totalPoints">0P</div>
+    </div>
+    <div class="card">
+      <div class="card-label">한정 활동 진행</div>
+      <div class="card-value"><span id="limitedDone">0</span> / <span id="limitedTotal">0</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label">오늘 적립</div>
+      <div class="card-value" id="todayPoints">0P</div>
+    </div>
+    <div class="card">
+      <div class="card-label">이번 달 적립</div>
+      <div class="card-value" id="monthPoints">0P</div>
+    </div>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="limited">🔴 한정 활동</button>
+    <button class="tab" data-tab="daily">📅 매일</button>
+    <button class="tab" data-tab="monthly">📆 매달</button>
+    <button class="tab" data-tab="usage">💰 사용 계획</button>
+  </nav>
+
+  <main>
+    <section id="tab-limited" class="tab-panel active">
+      <p class="hint">기회를 놓치면 영영 못 챙기는 포인트! 우선적으로 챙길 것.</p>
+      <ul id="limitedList" class="activity-list"></ul>
+    </section>
+
+    <section id="tab-daily" class="tab-panel">
+      <p class="hint">오늘 날짜: <strong id="todayDate"></strong> · 매일 자정에 초기화됩니다.</p>
+      <ul id="dailyList" class="activity-list"></ul>
+    </section>
+
+    <section id="tab-monthly" class="tab-panel">
+      <p class="hint">이번 달: <strong id="thisMonth"></strong> · 매월 1일에 초기화됩니다.</p>
+      <ul id="monthlyList" class="activity-list"></ul>
+    </section>
+
+    <section id="tab-usage" class="tab-panel">
+      <p class="hint">포인트 사용은 본식일 <strong>한 달 전에 요청</strong> 필요. 게시글에 <code>[웨딩품목+사용금액]</code> 기재 후 신청.</p>
+      <ul id="usageList" class="usage-list"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <button id="resetBtn" class="reset-btn">전체 초기화</button>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
