@@ -21,7 +21,7 @@
   ],
   "daily": [
     { "id": "wedding-talk", "name": "웨딩수다", "perDay": 3, "point": 500, "note": "글자 400자+ / 사진 1~3장 (1회당 500P, 일 3회)" },
-    { "id": "comment-activity", "name": "댓글활동", "perDay": 1, "point": 1500, "note": "댓글 20~60건 후 인증글 (1회 최대 1,500P)" }
+    { "id": "comment-activity", "name": "댓글활동", "perDay": 3, "point": 500, "note": "댓글 20개 단위 500P씩 · 최대 60개 (1,500P)" }
   ],
   "monthly": [
     { "id": "other-cafe-msg", "name": "타카페 쪽지 (블로그 댓글 포함)", "perMonth": 20, "point": 1000, "note": "웨딩 관련 내용만 인정" },
