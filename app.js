@@ -6,9 +6,13 @@ let state = loadState();
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (!s.history) s.history = {};
+      return s;
+    }
   } catch (e) {}
-  return { limited: {}, daily: {}, monthly: {}, dailyDate: '', monthlyKey: '' };
+  return { limited: {}, daily: {}, monthly: {}, dailyDate: '', monthlyKey: '', history: {} };
 }
 
 function saveState() {
@@ -61,12 +65,79 @@ function getMonthlyCount(id) {
   return state.monthly[id] || 0;
 }
 
+function historyKey(bucket, id) {
+  return `${bucket}:${id}`;
+}
+
+function getHistory(bucket, id) {
+  return state.history[historyKey(bucket, id)] || [];
+}
+
 function changeCount(bucket, id, delta, max) {
   const current = state[bucket][id] || 0;
   const next = Math.max(0, Math.min(max, current + delta));
+  if (next === current) return;
   state[bucket][id] = next;
+  const key = historyKey(bucket, id);
+  if (!state.history[key]) state.history[key] = [];
+  if (delta > 0) {
+    state.history[key].push(new Date().toISOString());
+  } else if (delta < 0 && state.history[key].length > 0) {
+    state.history[key].sort();
+    state.history[key].pop();
+  }
   saveState();
   render();
+}
+
+function addPastEntry(bucket, id, max, dateString) {
+  const key = historyKey(bucket, id);
+  if (!state.history[key]) state.history[key] = [];
+  if (isCurrentPeriod(bucket, dateString)) {
+    const current = state[bucket][id] || 0;
+    if (current >= max) {
+      alert('이미 최대치예요. 더 추가할 수 없어요.');
+      return;
+    }
+    state[bucket][id] = current + 1;
+  }
+  state.history[key].push(dateString);
+  state.history[key].sort();
+  saveState();
+  render();
+}
+
+function deleteHistoryEntry(bucket, id, value) {
+  const key = historyKey(bucket, id);
+  const arr = state.history[key];
+  if (!arr || arr.length === 0) return;
+  const idx = arr.indexOf(value);
+  if (idx === -1) return;
+  arr.splice(idx, 1);
+  if (isCurrentPeriod(bucket, value)) {
+    state[bucket][id] = Math.max(0, (state[bucket][id] || 0) - 1);
+  }
+  saveState();
+  render();
+}
+
+function formatTime(value) {
+  return getDatePart(value);
+}
+
+function getDatePart(value) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function isCurrentPeriod(bucket, value) {
+  if (bucket === 'limited') return true;
+  const date = getDatePart(value);
+  if (bucket === 'daily') return date === todayKey();
+  if (bucket === 'monthly') return date.startsWith(monthKey());
+  return false;
 }
 
 function calcTotal() {
@@ -92,29 +163,82 @@ function renderSummary() {
   document.getElementById('limitedTotal').textContent = data.limited.length;
 }
 
+const expanded = new Set();
+
 function makeItem(activity, bucket, maxKey) {
   const max = activity[maxKey];
   const count = state[bucket][activity.id] || 0;
   const done = count >= max;
+  const key = historyKey(bucket, activity.id);
+  const history = getHistory(bucket, activity.id);
+  const isOpen = expanded.has(key);
 
   const li = document.createElement('li');
-  li.className = 'activity-item' + (done ? ' done' : '');
+  li.className = 'activity-item' + (done ? ' done' : '') + (isOpen ? ' open' : '');
+
+  const sortedHistory = [...history].sort();
+  const historyHtml = sortedHistory.length
+    ? sortedHistory.map((iso, i) => `<li><span class="hist-text">${i + 1}. ${formatTime(iso)}</span><button class="hist-del" data-action="del-hist" data-iso="${iso}" title="이 기록 삭제">×</button></li>`).reverse().join('')
+    : '<li class="empty">아직 요청한 기록이 없어요.</li>';
 
   li.innerHTML = `
-    <div class="activity-info">
-      <div class="activity-name">${activity.name}</div>
-      <div class="activity-meta">${activity.note}</div>
-      <div class="activity-point">${formatPoint(activity.point)} × ${max}회</div>
+    <div class="activity-row">
+      <div class="activity-info" data-action="toggle">
+        <div class="activity-name">${activity.name} <span class="chev">${isOpen ? '▾' : '▸'}</span></div>
+        <div class="activity-meta">${activity.note}</div>
+        <div class="activity-point">${formatPoint(activity.point)} × ${max}회</div>
+      </div>
+      <div class="counter">
+        <button data-action="dec" ${count <= 0 ? 'disabled' : ''}>-</button>
+        <div class="count">${count} / ${max}</div>
+        <button data-action="inc" ${count >= max ? 'disabled' : ''}>+</button>
+      </div>
     </div>
-    <div class="counter">
-      <button data-action="dec" ${count <= 0 ? 'disabled' : ''}>-</button>
-      <div class="count">${count} / ${max}</div>
-      <button data-action="inc" ${count >= max ? 'disabled' : ''}>+</button>
+    <div class="history" ${isOpen ? '' : 'hidden'}>
+      <div class="history-title">포인트 요청 (${history.length}건) · 승인 대기중</div>
+      <ul class="history-list">${historyHtml}</ul>
+      <div class="history-add">
+        <input type="date" data-action="past-time" />
+        <button data-action="add-past" ${bucket === 'limited' && count >= max ? 'disabled' : ''}>지난 요청 추가</button>
+      </div>
     </div>
   `;
 
   li.querySelector('[data-action=inc]').addEventListener('click', () => changeCount(bucket, activity.id, 1, max));
   li.querySelector('[data-action=dec]').addEventListener('click', () => changeCount(bucket, activity.id, -1, max));
+  li.querySelector('[data-action=toggle]').addEventListener('click', () => {
+    if (expanded.has(key)) expanded.delete(key);
+    else expanded.add(key);
+    render();
+  });
+  const dateInput = li.querySelector('[data-action=past-time]');
+  if (dateInput) {
+    dateInput.addEventListener('click', () => {
+      try { dateInput.showPicker && dateInput.showPicker(); } catch (e) {}
+    });
+    dateInput.addEventListener('focus', () => {
+      try { dateInput.showPicker && dateInput.showPicker(); } catch (e) {}
+    });
+  }
+  li.querySelectorAll('[data-action=del-hist]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const iso = btn.dataset.iso;
+      deleteHistoryEntry(bucket, activity.id, iso);
+    });
+  });
+  const addBtn = li.querySelector('[data-action=add-past]');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const input = li.querySelector('[data-action=past-time]');
+      const val = input.value;
+      if (!val) {
+        alert('날짜를 선택해주세요.');
+        return;
+      }
+      addPastEntry(bucket, activity.id, max, val);
+    });
+  }
   return li;
 }
 
@@ -161,10 +285,27 @@ function setupTabs() {
 function setupReset() {
   document.getElementById('resetBtn').addEventListener('click', () => {
     if (confirm('모든 활동 기록을 초기화할까요?')) {
-      state = { limited: {}, daily: {}, monthly: {}, dailyDate: todayKey(), monthlyKey: monthKey() };
+      state = { limited: {}, daily: {}, monthly: {}, dailyDate: todayKey(), monthlyKey: monthKey(), history: {} };
       saveState();
       render();
     }
+  });
+  document.getElementById('resetTodayBtn').addEventListener('click', () => {
+    if (!confirm('오늘 입력한 기록만 초기화할까요?')) return;
+    const td = todayKey();
+    Object.keys(state.history).forEach(key => {
+      const [bucket, id] = key.split(':');
+      const arr = state.history[key];
+      const before = arr.length;
+      state.history[key] = arr.filter(v => getDatePart(v) !== td);
+      const removed = before - state.history[key].length;
+      if (removed > 0 && (bucket === 'limited' || bucket === 'monthly')) {
+        state[bucket][id] = Math.max(0, (state[bucket][id] || 0) - removed);
+      }
+    });
+    state.daily = {};
+    saveState();
+    render();
   });
 }
 
