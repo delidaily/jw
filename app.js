@@ -141,11 +141,27 @@ function isCurrentPeriod(bucket, value) {
 }
 
 function calcTotal() {
-  let limited = 0, daily = 0, monthly = 0;
-  data.limited.forEach(a => { limited += getLimitedCount(a.id) * a.point; });
-  data.daily.forEach(a => { daily += getDailyCount(a.id) * a.point; });
-  data.monthly.forEach(a => { monthly += getMonthlyCount(a.id) * a.point; });
-  return { limited, daily, monthly, total: limited + daily + monthly };
+  let total = 0, today = 0, month = 0;
+  const td = todayKey();
+  const mk = monthKey();
+
+  const pointMap = {};
+  data.limited.forEach(a => { pointMap['limited:' + a.id] = a.point; });
+  data.daily.forEach(a => { pointMap['daily:' + a.id] = a.point; });
+  data.monthly.forEach(a => { pointMap['monthly:' + a.id] = a.point; });
+
+  Object.keys(state.history).forEach(key => {
+    const point = pointMap[key];
+    if (!point) return;
+    state.history[key].forEach(value => {
+      total += point;
+      const date = getDatePart(value);
+      if (date === td) today += point;
+      if (date.startsWith(mk)) month += point;
+    });
+  });
+
+  return { total, today, month };
 }
 
 function formatPoint(n) {
@@ -155,8 +171,8 @@ function formatPoint(n) {
 function renderSummary() {
   const t = calcTotal();
   document.getElementById('totalPoints').textContent = formatPoint(t.total);
-  document.getElementById('todayPoints').textContent = formatPoint(t.daily);
-  document.getElementById('monthPoints').textContent = formatPoint(t.daily + t.monthly);
+  document.getElementById('todayPoints').textContent = formatPoint(t.today);
+  document.getElementById('monthPoints').textContent = formatPoint(t.month);
 
   const done = data.limited.filter(a => getLimitedCount(a.id) >= a.max).length;
   document.getElementById('limitedDone').textContent = done;
