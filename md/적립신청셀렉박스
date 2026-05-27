@@ -1,0 +1,40 @@
+<th>포인트 적립항목</th>
+    <td>
+        <select id="reqSelect" name="reqSelect" class="wp35">
+            <option value="0" data-1="P0000">항목을 선택해주세요</option>
+        
+            <option value="500" data-1="P0001">매달 일일수다</option>
+            <option value="500" data-1="P0002">매달 일일댓글</option>
+            <option value="2000" data-1="P0003">매달 블로그</option>
+            <option value="1000" data-1="P0004">매달 인스타</option>
+            <option value="500" data-1="P0005">매달 포인트인증</option>
+            <option value="1000" data-1="P0006">결혼예산표 신청</option>
+            <option value="1000" data-1="P0007">전화(방문)</option>
+            <option value="1000" data-1="P0008">스드메 견적</option>
+            <option value="1000" data-1="P0009">웨딩홀 섭외</option>
+            <option value="5000" data-1="P0010">웨딩 견적비교(썰)</option>
+            <option value="1000" data-1="P0011">영수증 리뷰</option>
+            <option value="1000" data-1="P0012">웨딩 칭찬후기</option>
+            <option value="2000" data-1="P0013">박람회 방문후기</option>
+            <option value="1000" data-1="P0014">한복/예물/허니문 견적</option>
+            <option value="10000" data-1="P0015">혼수 계약인증</option>
+            <option value="1000" data-1="P0016">타사 견적비교</option>
+            <option value="1000" data-1="P0017">자랑후기</option>
+            <option value="5000" data-1="P0020">블로그</option>
+            <option value="1000" data-1="P0021">쪽지(블로그댓글)</option>
+            <option value="1000" data-1="P0022">우리카페앱 다운</option>
+            <option value="2000" data-1="P0023">인스타</option>
+            <option value="1000" data-1="P0024">게시판 즐겨찾기</option>
+            <option value="500" data-1="P0025">유튜브 구독</option>
+            <option value="500" data-1="P0026">네이버TV 구독</option>
+            <option value="2000" data-1="P0032">플래너 진행후기</option>
+            <option value="2000" data-1="P0033">스드메 진행후기</option>
+            <option value="2000" data-1="P0034">혼수 진행후기</option>
+            <option value="2000" data-1="P0035">종로 진행후기</option>
+            <option value="10000" data-1="P0036">종로 계약인증</option>
+            <option value="2000" data-1="P0038">수원 진행후기</option>
+            <option value="10000" data-1="P0039">수원 계약인증</option>
+            <option value="1000" data-1="P0041">혼수 칭찬후기</option>
+        
+        </select>
+    </td>
