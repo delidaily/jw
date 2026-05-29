@@ -8,10 +8,25 @@
 let data         = null;          // data.json (활동 정의)
 let userSlug     = null;          // 현재 URL slug
 let userNickname = null;          // 현재 사용자 닉네임
+let lastFetchAt  = 0;             // 마지막 loadUserData 호출 시각 (refetch throttle)
 
 // state.history: { 'bucket:id': [{id: uuid, occurred_at: 'YYYY-MM-DD'}, ...] }
 // state[bucket][id]: 현재 기간 카운트 (history에서 derive)
 let state = { limited: {}, daily: {}, monthly: {}, history: {} };
+
+// ─── Toast ────────────────────────────────────────────────
+function showToast(message, type = 'info', durationMs = 2800) {
+  const container = document.getElementById('toastContainer');
+  if (!container) { console.log(`[toast/${type}]`, message); return; }
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 300);
+  }, durationMs);
+}
 
 // ─── 날짜 유틸 ────────────────────────────────────────────
 function todayKey() {
@@ -44,6 +59,7 @@ async function loadUserData(slug) {
   const result = await callRpc('get_my_data', { p_slug: slug });
   userSlug     = slug;
   userNickname = result.nickname || null;
+  lastFetchAt  = Date.now();
 
   // events → state.history 재구성
   state.history = {};
@@ -53,6 +69,20 @@ async function loadUserData(slug) {
     state.history[key].push({ id: ev.id, occurred_at: ev.occurred_at });
   }
   recomputeCounters();
+}
+
+// 탭 포커스/visibility 복귀 시 호출. 30초 throttle.
+async function refetchIfStale() {
+  if (!userSlug) return;
+  const now = Date.now();
+  if (now - lastFetchAt < 30 * 1000) return;
+  try {
+    await loadUserData(userSlug);
+    render();
+  } catch (e) {
+    // 실패해도 silent (toast로 도배 안 함). 콘솔에만 남김.
+    console.error('refetch failed', e);
+  }
 }
 
 // ─── 카운터 재계산 (history에서 derive) ───────────────────
@@ -113,7 +143,7 @@ async function changeCount(bucket, id, delta, max) {
         p_point:       activity.point,
       });
       list.push({ id: newId, occurred_at: dateStr });
-    } catch (e) { alert(`저장 실패: ${e.message}`); return; }
+    } catch (e) { showToast(`저장 실패: ${e.message}`, 'error'); return; }
 
   } else if (delta < 0 && list.length > 0) {
     // 가장 최근 (occurred_at 기준) 1건 제거
@@ -122,7 +152,7 @@ async function changeCount(bucket, id, delta, max) {
     try {
       await callRpc('delete_point_event', { p_slug: userSlug, p_event_id: last.id });
       state.history[key] = list.filter(e => e.id !== last.id);
-    } catch (e) { alert(`삭제 실패: ${e.message}`); return; }
+    } catch (e) { showToast(`삭제 실패: ${e.message}`, 'error'); return; }
   } else {
     return;
   }
@@ -136,7 +166,7 @@ async function addPastEntry(bucket, id, max, dateString) {
   if (!activity) return;
   if (isCurrentPeriod(bucket, dateString)) {
     const current = state[bucket][id] || 0;
-    if (current >= max) { alert('이미 최대치예요. 더 추가할 수 없어요.'); return; }
+    if (current >= max) { showToast('이미 최대치예요. 더 추가할 수 없어요.', 'info'); return; }
   }
   try {
     const newId = await callRpc('add_point_event', {
@@ -149,7 +179,7 @@ async function addPastEntry(bucket, id, max, dateString) {
     const key = historyKey(bucket, id);
     if (!state.history[key]) state.history[key] = [];
     state.history[key].push({ id: newId, occurred_at: dateString });
-  } catch (e) { alert(`저장 실패: ${e.message}`); return; }
+  } catch (e) { showToast(`저장 실패: ${e.message}`, 'error'); return; }
 
   recomputeCounters();
   render();
@@ -162,7 +192,7 @@ async function deleteHistoryEntry(bucket, id, eventId) {
   try {
     await callRpc('delete_point_event', { p_slug: userSlug, p_event_id: eventId });
     state.history[key] = arr.filter(e => e.id !== eventId);
-  } catch (e) { alert(`삭제 실패: ${e.message}`); return; }
+  } catch (e) { showToast(`삭제 실패: ${e.message}`, 'error'); return; }
   recomputeCounters();
   render();
 }
@@ -269,7 +299,7 @@ function makeItem(activity, bucket, maxKey) {
     addBtn.addEventListener('click', () => {
       const input = li.querySelector('[data-action=past-time]');
       const val = input.value;
-      if (!val) { alert('날짜를 선택해주세요.'); return; }
+      if (!val) { showToast('날짜를 선택해주세요.', 'info'); return; }
       addPastEntry(bucket, activity.id, max, val);
     });
   }
@@ -339,7 +369,8 @@ async function bulkDelete(eventIds) {
   // 다시 로드 (안전하게 서버 기준으로 동기화)
   await loadUserData(userSlug);
   render();
-  if (failed > 0) alert(`${failed}건 삭제 실패`);
+  if (failed > 0) showToast(`${failed}건 삭제 실패`, 'error');
+  else if (eventIds.length > 0) showToast(`${eventIds.length}건 삭제됨`, 'success');
 }
 
 function setupDateLabels() {
@@ -368,16 +399,22 @@ function setupWelcome() {
       return;
     }
     try {
-      const slug = await callRpc('find_my_url', { p_naver_id: naverId, p_nickname: nickname });
-      if (!slug) throw new Error('URL을 찾을 수 없습니다.');
-      location.hash = slug;
-      location.reload();
-    } catch (e) {
-      const msg = e.message.includes('not found')   ? '일치하는 URL을 찾을 수 없습니다.'
-                : e.message.includes('ambiguous')   ? '동일 정보로 등록된 URL이 여러 개입니다. 관리자에게 문의하세요.'
-                : e.message.includes('required')    ? '네이버ID와 닉네임을 모두 입력하세요.'
-                : `오류: ${e.message}`;
+      const result = await callRpc('find_my_url', { p_naver_id: naverId, p_nickname: nickname });
+      // result = { status: '...', slug?: '...' }
+      if (result && result.status === 'ok' && result.slug) {
+        location.hash = result.slug;
+        location.reload();
+        return;
+      }
+      const msg = result && result.status === 'rate_limit_exceeded' ? '너무 많이 시도하셨습니다. 5분 후 다시 시도해주세요.'
+                : result && result.status === 'not_found'           ? '일치하는 URL을 찾을 수 없습니다.'
+                : result && result.status === 'ambiguous'           ? '동일 정보로 등록된 URL이 여러 개입니다. 관리자에게 문의하세요.'
+                : result && result.status === 'required'            ? '네이버ID와 닉네임을 모두 입력하세요.'
+                : `알 수 없는 응답: ${JSON.stringify(result)}`;
       errEl.textContent = msg;
+      errEl.hidden = false;
+    } catch (e) {
+      errEl.textContent = `오류: ${e.message}`;
       errEl.hidden = false;
     }
   });
@@ -434,5 +471,21 @@ async function init() {
 
 // 해시 변경 시 재로드
 window.addEventListener('hashchange', () => location.reload());
+
+// 자정 넘김 보정 + 주기적 stale 데이터 갱신 (5분마다)
+// - recomputeCounters: 로컬에서 "오늘/이번달" 카운터 재계산 (네트워크 X)
+// - refetchIfStale: 30초 throttle 적용된 DB 재로드
+setInterval(() => {
+  if (!userSlug) return;
+  recomputeCounters();
+  render();
+  refetchIfStale();
+}, 5 * 60 * 1000);
+
+// 다른 기기/탭에서의 변경 반영: 탭 복귀 시 최신 데이터 fetch
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refetchIfStale();
+});
+window.addEventListener('focus', () => refetchIfStale());
 
 init();

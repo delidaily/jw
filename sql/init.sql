@@ -344,3 +344,133 @@ grant execute on function admin_bulk_create_users(text, jsonb) to anon;
 -- select find_my_url('test_naver', '테스트');
 -- select add_point_event('test-xxxxxx', 'daily', 'a01', current_date, 1);
 -- select get_my_data('test-xxxxxx');  -- events에 1개 보여야 함
+
+-- =============================================================
+-- 9. Rate Limit (2026-05-29 추가)
+--    brute force 공격 대비. IP × 함수명 단위로 시도 횟수 추적.
+-- =============================================================
+
+create table if not exists rate_limits (
+  ip            text         not null,
+  function_name text         not null,
+  attempts      int          not null default 1,
+  window_start  timestamptz  not null default now(),
+  primary key (ip, function_name)
+);
+
+revoke all on rate_limits from anon, authenticated;
+alter table rate_limits enable row level security;
+
+-- 헬퍼: 호출 시 시도 횟수 증가. true=허용, false=초과(예외 X)
+-- ⚠️ 예외를 던지지 않는 이유: 호출자 함수가 그 후 raise하면 트랜잭션이 롤백되어
+--    카운터 증가가 사라지기 때문. 모든 경로에서 정상 return해야 commit됨.
+drop function if exists check_rate_limit(text, int, int);
+create or replace function check_rate_limit(
+  p_function_name    text,
+  p_max_attempts     int,
+  p_window_seconds   int
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_ip       text;
+  v_headers  text;
+  v_now      timestamptz := now();
+  v_attempts int;
+  v_start    timestamptz;
+begin
+  -- 클라이언트 IP 추출 (PostgREST가 헤더로 전달)
+  begin
+    v_headers := current_setting('request.headers', true);
+    if v_headers is not null then
+      v_ip := split_part(v_headers::json->>'x-forwarded-for', ',', 1);
+    end if;
+  exception when others then
+    v_ip := null;
+  end;
+  v_ip := nullif(trim(coalesce(v_ip, '')), '');
+  if v_ip is null then v_ip := 'unknown'; end if;
+
+  select attempts, window_start
+    into v_attempts, v_start
+    from rate_limits
+    where ip = v_ip and function_name = p_function_name
+    for update;
+
+  if not found then
+    insert into rate_limits (ip, function_name, attempts, window_start)
+      values (v_ip, p_function_name, 1, v_now);
+    return true;
+  end if;
+
+  -- 윈도우 만료 → 리셋
+  if v_now - v_start > make_interval(secs => p_window_seconds) then
+    update rate_limits
+      set attempts = 1, window_start = v_now
+      where ip = v_ip and function_name = p_function_name;
+    return true;
+  end if;
+
+  -- 임계치 초과 → 더 이상 증가 X, false 반환
+  if v_attempts >= p_max_attempts then
+    return false;
+  end if;
+
+  update rate_limits
+    set attempts = attempts + 1
+    where ip = v_ip and function_name = p_function_name;
+  return true;
+end;
+$$;
+
+-- find_my_url: rate limit 적용 (5분에 IP당 5회).
+-- ⚠️ 모든 결과 분기를 jsonb로 반환 (raise 금지) — 트랜잭션 commit해야 카운터 증가가 살아남음.
+-- 반환 status: 'ok' | 'rate_limit_exceeded' | 'required' | 'not_found' | 'ambiguous'
+drop function if exists find_my_url(text, text);
+create or replace function find_my_url(
+  p_naver_id  text,
+  p_nickname  text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_slug  text;
+  v_count int;
+begin
+  if not check_rate_limit('find_my_url', 5, 300) then
+    return jsonb_build_object('status', 'rate_limit_exceeded');
+  end if;
+
+  if p_naver_id is null or p_nickname is null
+     or length(trim(p_naver_id)) = 0 or length(trim(p_nickname)) = 0 then
+    return jsonb_build_object('status', 'required');
+  end if;
+
+  select count(*), max(url_slug)
+    into v_count, v_slug
+    from users
+    where naver_id = p_naver_id
+      and nickname = p_nickname
+      and status = 'active';
+
+  if v_count = 0 then
+    return jsonb_build_object('status', 'not_found');
+  elsif v_count > 1 then
+    return jsonb_build_object('status', 'ambiguous');
+  end if;
+
+  return jsonb_build_object('status', 'ok', 'slug', v_slug);
+end;
+$$;
+grant execute on function find_my_url(text, text) to anon;
+
+-- 관리자 비번 RPC에는 아직 미적용 (md/다중사용자_계획.md 0-A-1 참조)
+-- 적용 시 admin_bulk_create_users 본문 첫 줄에 아래 추가:
+--   perform check_rate_limit('admin_bulk_create_users', 5, 60);
+
