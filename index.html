@@ -10,10 +10,47 @@
   <header>
     <h1>💍 제이웨딩 포인트 관리</h1>
     <p class="subtitle">플래너 계약 완료 기준 · 카페+SNS 활동 중심</p>
+    <div id="userInfo" class="user-info" hidden>
+      <span id="userNickname"></span>
+      <span class="user-slug" id="userSlugLabel"></span>
+    </div>
     <a class="point-link" href="http://lovepromise.co.kr/cafe/point/login.asp" target="_blank" rel="noopener noreferrer">
       🔗 포인트 적립 요청 바로가기
     </a>
   </header>
+
+  <section id="welcome" class="welcome" hidden>
+    <h2>👋 환영합니다</h2>
+    <p class="hint">본인 URL에 접속해주세요. URL을 모른다면 아래에서 찾을 수 있습니다.</p>
+
+    <div class="welcome-card">
+      <h3>① URL을 알고 있다면</h3>
+      <div class="welcome-row">
+        <input type="text" id="directSlug" placeholder="예: jiwon-x7n2p9" autocomplete="off" />
+        <button id="directGoBtn" class="btn">이동</button>
+      </div>
+    </div>
+
+    <div class="welcome-card">
+      <h3>② 내 URL 찾기</h3>
+      <p class="hint">신청 시 입력한 네이버ID와 닉네임이 일치해야 합니다.</p>
+      <div class="welcome-row">
+        <input type="text" id="findNaverId" placeholder="네이버ID" autocomplete="off" />
+        <input type="text" id="findNickname" placeholder="닉네임" autocomplete="off" />
+        <button id="findBtn" class="btn">찾기</button>
+      </div>
+      <div id="findError" class="welcome-error" hidden></div>
+    </div>
+
+    <div class="welcome-card">
+      <h3>③ 처음이라면</h3>
+      <p class="hint">관리자에게 구글폼 링크를 받아 신청 후, 위 ②번에서 URL을 찾으세요.</p>
+    </div>
+  </section>
+
+  <div id="appLoading" class="app-loading">로딩 중…</div>
+
+  <div id="appBody" hidden>
 
   <section class="summary">
     <div class="card">
@@ -67,7 +104,9 @@
     <button id="resetTodayBtn" class="reset-btn">오늘만 초기화</button>
     <button id="resetBtn" class="reset-btn">전체 초기화</button>
   </footer>
+  </div><!-- /#appBody -->
 
+  <script src="supabase-config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

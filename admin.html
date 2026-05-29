@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>🛠 관리자 · 사용자 일괄 생성</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .admin-section { background: white; border-radius: 12px; padding: 16px; margin: 16px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .admin-section h2 { font-size: 1rem; color: #c2185b; margin-bottom: 8px; }
+    .admin-section .hint { font-size: 0.8rem; color: #888; margin-bottom: 10px; }
+    .admin-section textarea { width: 100%; min-height: 160px; padding: 10px; border: 1px solid #e0c4d0; border-radius: 8px; font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 0.85rem; resize: vertical; }
+    .admin-section input[type="password"], .admin-section input[type="text"] { width: 100%; padding: 10px; border: 1px solid #e0c4d0; border-radius: 8px; font-size: 0.95rem; margin-top: 6px; }
+    .admin-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .btn { flex: 1; padding: 12px; background: #c2185b; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: filter 0.1s; }
+    .btn:hover { filter: brightness(1.05); }
+    .btn:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-secondary { background: #888; }
+    table.result { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.85rem; }
+    table.result th, table.result td { border-bottom: 1px solid #f0e0e8; padding: 8px 6px; text-align: left; vertical-align: top; }
+    table.result th { background: #fdf0f5; color: #c2185b; font-weight: 600; }
+    .status-created { color: #2e7d32; font-weight: 600; }
+    .status-error   { color: #c62828; font-weight: 600; }
+    .final-url { font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 0.8rem; word-break: break-all; }
+    .copy-btn { padding: 4px 8px; font-size: 0.75rem; background: #f0f0f0; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; margin-left: 4px; }
+    .copy-btn:hover { background: #e8e8e8; }
+    .field-label { font-size: 0.85rem; color: #666; font-weight: 500; margin-top: 10px; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛠 관리자 페이지</h1>
+    <p class="subtitle">사용자 일괄 생성 (구글시트 복붙)</p>
+  </header>
+
+  <section class="admin-section">
+    <h2>1. 시트에서 복사한 행 붙여넣기</h2>
+    <p class="hint">
+      구글시트에서 처리할 행을 선택 → Ctrl+C → 아래 영역에 Ctrl+V.<br>
+      컬럼 순서: <strong>타임스탬프 / 희망슬러그 / 닉네임 / 네이버ID</strong> (탭 구분)
+    </p>
+    <textarea id="rowsInput" placeholder="2026/05/28 10:23:45&#9;jiwon&#9;지원&#9;jiwon_naver&#10;2026/05/28 11:01:02&#9;hana-w&#9;하나&#9;hana_2024"></textarea>
+
+    <label class="field-label">관리자 비번</label>
+    <input type="password" id="adminKey" placeholder="DB에 설정한 관리자 비번" autocomplete="off" />
+
+    <div class="admin-actions">
+      <button class="btn btn-secondary" id="previewBtn">미리보기</button>
+      <button class="btn" id="submitBtn">▶ 일괄 처리</button>
+    </div>
+  </section>
+
+  <section class="admin-section" id="resultSection" style="display:none;">
+    <h2>2. 처리 결과</h2>
+    <div id="resultSummary" class="hint"></div>
+    <table class="result" id="resultTable">
+      <thead>
+        <tr>
+          <th>입력 슬러그</th>
+          <th>상태</th>
+          <th>최종 URL / 메시지</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <script src="supabase-config.js"></script>
+  <script>
+    // ─── DOM ─────────────────────────────────────────────────
+    const $rows       = document.getElementById('rowsInput');
+    const $key        = document.getElementById('adminKey');
+    const $previewBtn = document.getElementById('previewBtn');
+    const $submitBtn  = document.getElementById('submitBtn');
+    const $resultSec  = document.getElementById('resultSection');
+    const $resultSum  = document.getElementById('resultSummary');
+    const $resultTb   = document.querySelector('#resultTable tbody');
+
+    // ─── 시트 TSV 파싱 ───────────────────────────────────────
+    // 구글시트 행 복사 = 줄바꿈으로 행 구분, 탭으로 컬럼 구분
+    function parseRows(text) {
+      return text.split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .map(line => {
+          const cols = line.split('\t');
+          return {
+            // [0] 타임스탬프는 참고용, DB에 안 넘김
+            slug:     (cols[1] || '').trim().toLowerCase(),
+            nickname: (cols[2] || '').trim() || null,
+            naver_id: (cols[3] || '').trim() || null,
+          };
+        });
+    }
+
+    // ─── 미리보기 ────────────────────────────────────────────
+    $previewBtn.addEventListener('click', () => {
+      const rows = parseRows($rows.value);
+      if (rows.length === 0) { alert('붙여넣은 행이 없습니다.'); return; }
+      const preview = rows.map((r, i) =>
+        `${i + 1}. ${r.slug || '(슬러그 없음)'} / ${r.nickname || '(닉네임 없음)'} / ${r.naver_id || '(네이버ID 없음)'}`
+      ).join('\n');
+      alert(`${rows.length}개 행이 파싱되었습니다:\n\n${preview}`);
+    });
+
+    // ─── 일괄 처리 ───────────────────────────────────────────
+    $submitBtn.addEventListener('click', async () => {
+      const rows = parseRows($rows.value);
+      const adminKey = $key.value;
+      if (rows.length === 0) { alert('붙여넣은 행이 없습니다.'); return; }
+      if (!adminKey)         { alert('관리자 비번을 입력하세요.'); return; }
+      if (!confirm(`${rows.length}개 행을 처리합니다. 계속할까요?`)) return;
+
+      $submitBtn.disabled = true;
+      $submitBtn.textContent = '처리 중…';
+      try {
+        const result = await callRpc('admin_bulk_create_users', {
+          p_admin_key: adminKey,
+          p_rows:      rows,
+        });
+        renderResult(result);
+      } catch (err) {
+        alert(`오류: ${err.message}`);
+      } finally {
+        $submitBtn.disabled = false;
+        $submitBtn.textContent = '▶ 일괄 처리';
+        $key.value = ''; // 비번 화면에 안 남김
+      }
+    });
+
+    // ─── 결과 렌더링 ─────────────────────────────────────────
+    function renderResult(result) {
+      $resultSec.style.display = '';
+      $resultTb.innerHTML = '';
+      const ok = result.filter(r => r.status === 'created').length;
+      const ng = result.length - ok;
+      $resultSum.innerHTML = `✅ 생성 <strong>${ok}</strong>건 · ⚠️ 오류 <strong>${ng}</strong>건`;
+
+      for (const r of result) {
+        const tr = document.createElement('tr');
+        if (r.status === 'created') {
+          const url = buildUserUrl(r.final_slug);
+          tr.innerHTML = `
+            <td>${escapeHtml(r.input || '')}</td>
+            <td class="status-created">✅ 생성</td>
+            <td>
+              <span class="final-url">${escapeHtml(url)}</span>
+              <button class="copy-btn" data-copy="${escapeHtml(url)}">복사</button>
+            </td>`;
+        } else {
+          tr.innerHTML = `
+            <td>${escapeHtml(r.input || '')}</td>
+            <td class="status-error">❌ 오류</td>
+            <td>${escapeHtml(r.message || '알 수 없음')}</td>`;
+        }
+        $resultTb.appendChild(tr);
+      }
+    }
+
+    // ─── 복사 버튼 (이벤트 위임) ─────────────────────────────
+    $resultTb.addEventListener('click', e => {
+      const btn = e.target.closest('.copy-btn');
+      if (!btn) return;
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✅';
+        setTimeout(() => { btn.textContent = orig; }, 1000);
+      });
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+  </script>
+</body>
+</html>

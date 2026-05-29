@@ -300,3 +300,69 @@ footer {
   font-size: 0.8rem;
 }
 .reset-btn:hover { color: #c2185b; border-color: #c2185b; }
+
+/* ─── Phase 2: 사용자 식별 / 환영 화면 ──────────────────── */
+.user-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #c2185b;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.user-info .user-slug { color: #aaa; font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; font-size: 0.75rem; }
+
+.app-loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.welcome { margin: 24px 0; }
+.welcome h2 { color: #c2185b; font-size: 1.2rem; margin-bottom: 4px; }
+.welcome > .hint { margin-bottom: 16px; }
+
+.welcome-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.welcome-card h3 { font-size: 0.95rem; color: #333; margin-bottom: 8px; }
+.welcome-card .hint { background: #f7f7f7; }
+
+.welcome-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.welcome-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e0c4d0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.welcome-row .btn {
+  padding: 10px 16px;
+  background: #c2185b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.welcome-row .btn:hover { filter: brightness(1.05); }
+
+.welcome-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
